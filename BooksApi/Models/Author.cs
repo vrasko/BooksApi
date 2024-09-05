@@ -3,7 +3,7 @@ using BooksApi.Helpers;
 
 namespace BooksApi.Models
 {
-  public class Authors
+  public class Author
   {
     //there is not solved localization and internationalization of messages in this simple example project
     [Key]
@@ -13,5 +13,11 @@ namespace BooksApi.Models
 
     public string Surname {  get; set; }//surneme separately because of indexing and sorting
     public string? Description { get; set; }
+  }
+
+  public class DataWrapper
+  {
+    public Author Author { get; set; }
+    public Book Book { get; set; }
   }
 }

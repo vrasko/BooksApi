@@ -4,7 +4,7 @@ using BooksApi.Helpers;
 
 namespace BooksApi.Models
 {
-  public class Books
+  public class Book
   {
     //for simplification let every book has only one author then relation table Books<->Authors is not required
     [Key]

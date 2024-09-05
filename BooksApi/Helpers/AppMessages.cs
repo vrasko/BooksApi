@@ -9,4 +9,11 @@
 
       };
   }
+  //indicators for manipulating/managing messages
+  public static class Consts
+  {
+    public const char chngIndicator = '*';
+    public const char errorIndicator = '!';
+
+  }
 }

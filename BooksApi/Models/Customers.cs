@@ -1,4 +1,5 @@
-﻿namespace BooksApi.Models
+﻿using System.ComponentModel.DataAnnotations;
+namespace BooksApi.Models
 {
   public class Customers
   {
@@ -11,6 +12,7 @@
     public string? Ad_zip { get; set; } //PSC
     public string? Ad_country { get; set; }
     public string? Ct_phone { get; set; }
+    [EmailAddress]
     public string? Ct_mail { get; set; }
     public string? Note { get;set; } //any other tags or notes for library admin
   }
