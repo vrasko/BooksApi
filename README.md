@@ -2,7 +2,7 @@
 Basic CRUD operations on Embedded Sqlite DB. Architecture is based on simplicity and max speed. 
 Used Minimal Api, Dapper technology. Web Api methods are requested via theirs urls. Test project contains Test methods, which call api points.
 MVC and Entity framework omitted due to their complexity and low speed for this task.
-In the case real application and real DB (MsSQL,Postgresql, Oracle, Mysql...} should be more efficient to do some operations in database procedures or functions
+In the case real application and real DB (MsSQL,Postgresql, Oracle, Mysql...} should be more efficient to do some operations in database procedures or functions directly.
 
 How to test API points via testproject with debugging
 1. Start debugging Unit Test
