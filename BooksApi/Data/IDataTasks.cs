@@ -1,4 +1,4 @@
-﻿using BooksApi.Models;
+﻿using BooksShared.Models;
 
 namespace BooksApi.Data
 {

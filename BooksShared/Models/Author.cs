@@ -1,13 +1,12 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using BooksApi.Helpers;
 
-namespace BooksApi.Models
+namespace BooksShared.Models
 {
   public class Author
   {
     //there is not solved localization and internationalization of messages in this simple example project
     [Key]
-    public long Id { get; set; }
+    public long? Id { get; set; }
     public string? Name { get; set; } //all names except of surname in one string because of various formats
     [Required(AllowEmptyStrings = false, ErrorMessage = "add_snm_auth")]// // "Uveďte meno autora." need to resolve in method  localization appAppMessages.MsgDict[]
 

@@ -1,19 +1,19 @@
 ﻿
 using System.ComponentModel.DataAnnotations;
-using BooksApi.Helpers;
+//using BooksApi.Helpers;
 
-namespace BooksApi.Models
+namespace BooksShared.Models
 {
   public class Book
   {
     //for simplification let every book has only one author then relation table Books<->Authors is not required
     [Key]
-    public long Id { get; set; }
+    public long? Id { get; set; }
     [Required(AllowEmptyStrings = false, ErrorMessage = "add_book_nm")]// "Uveďte názov knihy." need to resolve in method  localization app
     public string Title { get; set; } = "";
     public string? Description { get; set; }
     [Required]
-    public long Author_Id { get; set; }
+    public long? Author_Id { get; set; }
     public string? Publisher { get; set; }
     [YearRange(1500)]
     public int Edition_year { get; set; } // year of publication with example of custom validation

@@ -1,5 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
-namespace BooksApi.Models
+namespace BooksShared.Models
 {
   public class Customers
   {

@@ -1,6 +1,6 @@
-﻿using static System.Runtime.InteropServices.JavaScript.JSType;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace BooksApi.Models
+namespace BooksShared.Models
 {
   public class Loans
   {
@@ -10,6 +10,7 @@ namespace BooksApi.Models
     public DateTime LoanDate { get; set; } = DateTime.Now; //Date of book lending
     public DateOnly? RetDate { get; set; } //Date of book returning
     public DateTime DueDate { get; set; } = DateTime.Now.AddMonths(1); //Date of deadline for returning the book, for example one month later
+    [DisplayFormat(DataFormatString = "{0:C}")]
     public float? LateFine { get; set; } // late payment penalty
   }
 }

@@ -1,13 +1,16 @@
-﻿using BooksApi.Models;
+﻿using BooksApi.DbAccess;
+using BooksShared.Models;
 namespace BooksApi.Data
 {
   public class DataTasks : IDataTasks
   {
     private readonly IConfiguration _config;
+    private readonly ISqliteDbAccess _sqlite;
     private readonly string _connName = "BooksApiSQLite";
-    public DataTasks(IConfiguration config)
+    public DataTasks(IConfiguration config, ISqliteDbAccess sqlite)
     {
       _config = config;
+      _sqlite= sqlite;
     }
     public async Task<dynamic> InsNewBook(Author author, Book book) //parametre json
     {
@@ -15,8 +18,15 @@ namespace BooksApi.Data
       //It is not efficient resolve the process of testing existence of book in api better practise is DB procedure.
       string sql;
       long? idAut=null;
-      sql = "SELECT author_id FROM Books  WHERE UPPER(title) =:Title AND ean_barcode = :Ean_barcode"; //'MARíNA', 9999000083137
-      return _postgres.LoadDataOneAnnonymAsync<dynamic>(sql, new { Title = book.Title, Ean_barcode=book.Ean_barcode }, _connName);
+      sql = "SELECT author_id FROM Books  WHERE ean_barcode = :Ean_barcode"; // 9999000083137, Marína
+      try
+      {
+       var id_a = await _sqlite.LoadDataOneAnnonymAsync<dynamic>(sql, new { Ean_barcode = book.Ean_barcode }, _connName);
+       if(id_a !=null) 
+        idAut=(long)id_a.author_id;
+      }
+      catch (Exception ex) 
+      { }
 
       if (author.Id == null) //insert author
       {
@@ -24,14 +34,14 @@ namespace BooksApi.Data
        
       }
       //zalozit autora a vratit jeho ID
-      book.Author_Id = idAut;
+      book.Author_Id =  idAut;
       //zalozit knihu
 
 
 
-      _postgres.StartTransaction(_connName);
-      var res = await _postgres.SaveDataInTransactionAsync(sql, osoba);
-      _postgres.CommitTransaction();
+      _sqlite.StartTransaction(_connName);
+      var res = await _sqlite.SaveDataInTransactionAsync(sql, book);
+      _sqlite.CommitTransaction();
       return res;
     }
   }

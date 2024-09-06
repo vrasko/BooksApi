@@ -1,6 +1,6 @@
-﻿using BooksApi.Models;
-using BooksApi.Data;
+﻿using BooksApi.Data;
 using BooksApi.Helpers;
+using BooksShared.Models;
 namespace BooksApi
 {
   public static class Api
@@ -13,17 +13,11 @@ namespace BooksApi
       app.MapPost("/insertbook", InsertBook);
     }
 
-    private static async Task<IResult> InsertBook(IDataTasks dataTasks, HttpContext context, ILoggerFactory loggerFactory) // post - nepouzivam asynchronny rezim
+    private static async Task<IResult> InsertBook(IDataTasks dataTasks, HttpContext context)//, ILoggerFactory loggerFactory) // post - nepouzivam asynchronny rezim
     {
-      ILogger log = loggerFactory.CreateLogger("InsNewBook");
+      //ILogger log = loggerFactory.CreateLogger("InsNewBook");
       try
       {
-        ////alt1
-        //IFormCollection jsons = await context.Request.ReadFormAsync(); //named jsons key, value
-        // string? author = jsons["osoba"]; //[0];
-        //string? book = jsons["dodavatel"];// [0]; //json
-        //json deserialization needed
-
         var collect = await context.Request.ReadFromJsonAsync<DataWrapper>();
         if (collect != null)
         {
@@ -39,7 +33,7 @@ namespace BooksApi
       }
       catch (Exception ex)
       {
-        log.LogError(errmess, ex.Message);
+        //log.LogError(errmess, ex.Message);
         return Results.Text(_errorIndicator + ex.Message);
       }
     }
