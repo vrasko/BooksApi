@@ -5,7 +5,7 @@ using System.Data;
 namespace BooksApi.DbAccess
 {
   // see dapper examples on https://github.com/DapperLib/Dapper bottom of page - Readme.md
-  public class SqliteDbAccess : IDisposable , ISqliteDbAccess
+  public class SqliteDbAccess : IDisposable, ISqliteDbAccess
   {
     private IDbConnection? _connection;
     private IDbTransaction? _transaction;
@@ -26,10 +26,31 @@ namespace BooksApi.DbAccess
     public async Task<dynamic> LoadDataOneAnnonymAsync<U>(string sql, U parameters, string connectionName)
     {
       using IDbConnection cnn = new SqliteConnection(GetConnectionString(connectionName));
-      var res =  await cnn.QueryFirstOrDefaultAsync(sql, parameters);
-      //var res= await cnn.QuerySingleAsync(sql, parameters);
-      return res;
+      return await cnn.QueryFirstOrDefaultAsync(sql, parameters);
+      //return res;
     }
+    public async Task<T?> LoadDataOneTypeAsync<T,U>(string sql, U parameters, string connectionName) //parameters different of retsult type
+    {
+      using IDbConnection cnn = new SqliteConnection(GetConnectionString(connectionName));
+      return await cnn.QueryFirstOrDefaultAsync<T>(sql, parameters);
+    }
+
+    public async Task<List<T>> LoadListTypeAsync<T>(string sql, T? parameters, string connectionName)
+    {
+      using IDbConnection cnn = new SqliteConnection(GetConnectionString(connectionName));
+      return (await cnn.QueryAsync<T>(sql, parameters)).ToList();
+    }
+    public async Task<dynamic?> ExecScalarAsync<U>(string sql, U parameters, string connectionName)
+    {
+      using IDbConnection cnn = new SqliteConnection(GetConnectionString(connectionName));
+      return await cnn.ExecuteScalarAsync(sql, parameters);
+    }
+    public async Task<dynamic?> ExecAsync<U>(string sql, U parameters, string connectionName)
+    {
+      using IDbConnection cnn = new SqliteConnection(GetConnectionString(connectionName));
+      return await cnn.ExecuteAsync(sql, parameters);
+    }
+
     public async Task<dynamic> SaveDataInTransactionAsync<T>(string sql, T parameters)
     {
       return await _connection.ExecuteAsync(sql, parameters, transaction: _transaction, commandTimeout: 0);

@@ -6,18 +6,18 @@ using System.Net.Http.Json;
 
 namespace BooksApi.Tests
 {
-//How to test API points
-//1. Start debugging Unit Test
-//2. While on the first line of your test code or before calling your local web api project
-//3. Right click on your web api project and Debug > Start new instance
+  //How to test API points
+  //1. Start debugging Unit Test
+  //2. While on the first line of your test code or before calling your local web api project
+  //3. Right click on your web api project and Debug > Start new instance
 
 
   [TestFixture]
   public class ApiTests
   {
-     private HttpClient _client = new();
+    private HttpClient _client = new();
 
-     #region Setup data
+    #region Setup data
     //private readonly HttpClient _client = new();
     private string _messPosted = "";
     private const string apiUrlBase = "https://localhost:7262";
@@ -26,14 +26,17 @@ namespace BooksApi.Tests
     {
       Name = "Stephen",
       Surname = "King",
-      Description = "master of horror"
+      Description = "master of horror",
+      Nationality = "American",
+      Century=20
+
     };
 
     private Book book1 = new()
     {
       Title = "Misery",
       Description = "Horror",
-      //Author_Id: ,
+      //Author_Id = null,
       Publisher = "Viking Press",
       Edition_year = 1987,
       Isbn = "0670813648",
@@ -44,18 +47,20 @@ namespace BooksApi.Tests
 
     #endregion
 
-
+    /// <summary>
+    /// calling complex function manipulating new book adding
+    /// </summary>
+    /// <returns>message for front end UI</returns>
     [Test]
     public async Task CallInsertBookTest() //vytvori novy zaznam
     {
-      string apiMap = apiUrlBase + "/insertbook"; //api addres of function
+      string apiMap = apiUrlBase + "/insertbook"; //api address of function
       string result = "";
       HttpResponseMessage httpResponseMessage;
 
       try
       {
-
-        //var multiContent = new { Authors = author1, Books = book1 };
+        // http context for sending from UI form - two model objects
         DataWrapper multiContent = new()
         {
           Author = author1,
@@ -67,13 +72,14 @@ namespace BooksApi.Tests
         {
           result = await httpResponseMessage.Content.ReadAsStringAsync();
           NUnit.Framework.Assert.That(result, Is.Not.Null);
-          Console.WriteLine("OK" +
-            "");
+          Console.WriteLine(result);
         }
-        //result += string.Format("Nepodarilo sa zapísať údaje (Status Code: {0})\n", httpResponseMessage.StatusCode);
-        string mes = $"Failed to insert book (Status Code: {httpResponseMessage.StatusCode})";
-         NUnit.Framework.Assert.Fail();
-        Console.WriteLine(mes);
+        else
+        {
+          string mes = $"Failed to insert book (Status Code: {httpResponseMessage.StatusCode})";
+          NUnit.Framework.Assert.Fail();
+          Console.WriteLine(mes);
+        }
       }
       catch (Exception ex)
       {

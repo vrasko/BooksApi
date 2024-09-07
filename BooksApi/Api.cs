@@ -13,7 +13,7 @@ namespace BooksApi
       app.MapPost("/insertbook", InsertBook);
     }
 
-    private static async Task<IResult> InsertBook(IDataTasks dataTasks, HttpContext context)//, ILoggerFactory loggerFactory) // post - nepouzivam asynchronny rezim
+    private static async Task<IResult> InsertBook(IDataTasks dataTasks, HttpContext context)//, ILoggerFactory loggerFactory) 
     {
       //ILogger log = loggerFactory.CreateLogger("InsNewBook");
       try
@@ -25,8 +25,9 @@ namespace BooksApi
           var author = collect.Author;
           var book = collect.Book;
 
-          var res = await dataTasks.InsNewBook(author, book);
+          var res = await dataTasks.InsBook(author, book);
           return Results.Ok(res);
+
         }
         else
           return Results.NoContent();
