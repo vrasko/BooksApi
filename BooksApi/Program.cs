@@ -1,12 +1,17 @@
 using BooksApi;
 using BooksApi.Data;
 using BooksApi.DbAccess;
+using Serilog;
 
 internal class Program
 {
   private static void Main(string[] args)
   {
     var builder = WebApplication.CreateBuilder(args);
+
+    //Logger Serilog
+    builder.Logging.ClearProviders();
+    builder.Host.UseSerilog((context, loggerconfig) => loggerconfig.ReadFrom.Configuration(context.Configuration));//read configuration from appsettings.json
 
     // Add services to the container.
 

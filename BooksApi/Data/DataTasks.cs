@@ -77,10 +77,26 @@ namespace BooksApi.Data
       }
       catch (Exception ex)
       {
-        //some log logic
+        //some logic for log
         return null;
       }
+    }
 
+    public async Task<Book?> GetBookInf(long bookid)
+    {
+      //reeturns ID, number of print of exixsting book, or null if not found
+      string sql = "SELECT * FROM Books  WHERE id = :Bookid"; //1
+      Book? bookIs;
+      try
+      {
+        bookIs = await _sqlite.LoadDataOneTypeAsync<Book, dynamic>(sql, new { Bookid = bookid }, _connName);
+        return bookIs;
+      }
+      catch (Exception ex)
+      {
+        //some logic for log
+        return null;
+      }
     }
     /// <summary>
     /// returns ID of exixsting author, or null if not found
@@ -137,7 +153,10 @@ namespace BooksApi.Data
     }
     public async Task<int?> UpdBook(Book book)
     {
-      string sql = "UPDATE Books SET title = :Title, description = :Description, author_id = :Author_id, publisher = :Publisher, edition_year = :Edition_year, isbn = :Isbn, ean_barcode = :Ean_barcode, prints_num = :Prints_num, note = :Note WHERE id = :Id";
+      // if foreign constraint restrict in Sqlite is needed to prevent update non existing author_id , there must send command  [PRAGMA foreign_keys = ON;] after open connection. For the example purpose it is not necessary.
+      //Author_Id is updating if it its value > 0, else it will not change.
+
+      string sql = "UPDATE Books SET title = :Title, description = :Description, author_id = CASE WHEN :Author_Id > 0 THEN :Author_Id  ELSE author_id END, publisher = :Publisher, edition_year = :Edition_year, isbn = :Isbn, ean_barcode = :Ean_barcode, prints_num = :Prints_num, note = :Note WHERE id = :Id";
       _sqlite.StartTransaction(_connName);
       var res = await _sqlite.SaveDataInTransactionAsync(sql, book);
       _sqlite.CommitTransaction();
