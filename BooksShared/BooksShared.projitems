@@ -12,7 +12,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Models\Author.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\Book.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\ComplexView.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Models\Customers.cs" />
+    <Compile Include="..\BooksShared\Models\Customer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\Loan.cs" />
   </ItemGroup>
 </Project>

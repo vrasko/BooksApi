@@ -264,7 +264,7 @@ namespace BooksApiTests
     /// <summary>
     /// returns necessary data for creating the confirmation of return via some template
     /// </summary>
-    /// <returns></returns>
+    /// <returns>complex view for confirmation</returns>
     [Test]
     public async Task GetReturnConfirm()
     {
@@ -277,7 +277,13 @@ namespace BooksApiTests
       {
         cw = await _client.GetFromJsonAsync<ComplexView>($"/getretconf/{bookid}");
         if (cw != null)
+        {
           NUnit.Framework.Assert.That(cw, Is.Not.Null);
+          //example text of confirmation
+          string confirmation=GetConfirmation(cw);
+          NUnit.Framework.Assert.That(confirmation, Is.Not.Empty);
+          Console.WriteLine(confirmation);
+        }
         else
         {
           mes = "No data returned.";
@@ -291,6 +297,41 @@ namespace BooksApiTests
         NUnit.Framework.Assert.Fail(mes);
       }
     }
+    //*********************************************
+    //- Pripomienka na vratenie knihy den pred dátumom vrátenia - Reminder of the return of the borrowed book
+    //- Služba sa bude spúšťať každý deň cez Windows Task Scheduler - Service runs every day via Windows Task scheduler
+    /// <summary>
+    /// sends emails for cusomers whose return deta of Loans is tomorrow
+    /// </summary>
+    /// <returns>message</returns>
+    [Test]
+    public async Task SendReminders()
+    {
+      string? res;
+      string mes;
+
+      try
+      {
+        res = await _client.GetStringAsync($"/sendreminder");
+        if (res != null)
+        {
+          NUnit.Framework.Assert.That(res, Is.Not.Empty);
+           Console.WriteLine(res);
+        }
+        else
+        {
+          mes = "No data returned.";
+          NUnit.Framework.Assert.Fail(mes);
+        }
+      }
+      catch (Exception ex)
+      {
+        mes = $"An error occurred: {ex.Message}";
+        Console.WriteLine(mes);
+        NUnit.Framework.Assert.Fail(mes);
+      }
+    }
+
 
     //**************************************************
     #region Private methods
@@ -337,8 +378,15 @@ namespace BooksApiTests
     }
     private static string GetConfirmation(ComplexView cw)
     {
-      string conf = $"Potvrdzujeme, že p. {cw.C_Title} {cw.C_Name} {cw.C_Surname} vrátil dňa : {cw.L_RetDate} knihu {cw.A_Name} {cw.A_Surname}: {cw.B_Title}, zapožičanú dňa: {cw.L_LoanDate}. Ďakujeme, že ste s nami.";
-      return conf;
+      try
+      {
+        string conf = $"Potvrdzujeme, že p. {cw.C_Title} {cw.C_Name} {cw.C_Surname} vrátil dňa : {DateOnly.FromDateTime((DateTime)cw.L_RetDate)} knihu {cw.A_Name} {cw.A_Surname}: {cw.B_Title}, zapožičanú dňa: {DateOnly.FromDateTime(cw.L_LoanDate)}.\r\nĎakujeme, že ste s nami.";
+        return conf;
+      }
+      catch (Exception)
+      {
+        return "";
+      }
     }
 
     #endregion

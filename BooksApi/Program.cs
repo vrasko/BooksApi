@@ -1,6 +1,7 @@
 using BooksApi;
 using BooksApi.Data;
 using BooksApi.DbAccess;
+using BooksApi.Helpers;
 using Serilog;
 
 internal class Program
@@ -12,6 +13,7 @@ internal class Program
     //Logger Serilog
     builder.Logging.ClearProviders();
     builder.Host.UseSerilog((context, loggerconfig) => loggerconfig.ReadFrom.Configuration(context.Configuration));//read configuration from appsettings.json
+    builder.Services.Configure<ConfigEmailModel>(builder.Configuration.GetSection("SmtpSettings"));
 
     // Add services to the container.
 
@@ -21,6 +23,7 @@ internal class Program
     builder.Services.AddSwaggerGen();
     builder.Services.AddSingleton<ISqliteDbAccess, SqliteDbAccess>(); //injection - interface, class
     builder.Services.AddSingleton<IDataTasks, DataTasks>();
+    builder.Services.AddTransient<EmailSender>();
     //bezpecne pripojenie api kvoli zakazu - bezpecnostnej politiky CORS problem
     builder.Services.AddCors(options =>
     {

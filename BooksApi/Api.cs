@@ -21,6 +21,9 @@ namespace BooksApi
       app.MapPost("/newloan", NewLoan);
       // Potvrdenie o vrátení vypožičanej knihy - Confirmation of the return of the borrowed book
       app.MapGet("/getretconf/{bookid}", GetRetConf);
+      // Pripomienka na vratenie knihy den pred dátumom vrátenia - Reminder of the return of the borrowed book
+      app.MapGet("/sendreminder", SendRemind);
+
     }
     /// <summary>
     /// Complex routine for adding new book(s) to DB
@@ -198,10 +201,10 @@ namespace BooksApi
       ILogger log = loggerFactory.CreateLogger("GetRetConf");
       try
       {
-        var results = await dataTasks.GetBookInf(bookid);
+        var results = await dataTasks.GetRetConfirm(bookid);
         if (results == null)
         {
-          log.LogWarning("Nenačítali sa údaje z DB.");
+          log.LogWarning("Nenačítali sa údaje z DB. Skontrolujte dátum vrátenia.");
           return Results.NotFound();
         }
 
@@ -213,6 +216,35 @@ namespace BooksApi
         return Results.Problem(_errorIndicator + ex.Message);
       }
     }
+
+
+    /// <summary>
+    ///  Retrieve book wich needed to be returned tomorrow, Then sends emails to the customers.
+    /// </summary>
+    /// <param name="dataTasks"></param>
+    /// <param name="loggerFactory"></param>
+    /// <returns></returns>
+    private static async Task<IResult> SendRemind(IDataTasks dataTasks, ILoggerFactory loggerFactory)
+    {
+      ILogger log = loggerFactory.CreateLogger("GetRetConf");
+      try
+      {
+        var results = await dataTasks.SendRem();
+        if (results == null)
+        {
+          log.LogWarning("Nenačítali sa údaje z DB. Skontrolujte dátum vrátenia.");
+          return Results.NotFound();
+        }
+
+        return Results.Ok(results);
+      }
+      catch (Exception ex)
+      {
+        log.LogError(errmess, ex.Message);
+        return Results.Problem(_errorIndicator + ex.Message);
+      }
+    }
+
   }
 
 }

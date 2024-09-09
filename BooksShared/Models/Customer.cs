@@ -1,8 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 namespace BooksShared.Models
 {
-  public class Customers
-
+  public class Customer
   {
     public long Id { get; set; }
     public string? Name { get; set; }

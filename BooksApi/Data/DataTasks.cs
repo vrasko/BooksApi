@@ -1,6 +1,7 @@
 ﻿using BooksApi.DbAccess;
 using BooksShared.Models;
-using System.Net;
+using BooksApi.Helpers;
+
 namespace BooksApi.Data
 {
   public class DataTasks : IDataTasks
@@ -8,25 +9,27 @@ namespace BooksApi.Data
     private readonly IConfiguration _config;
     private readonly ISqliteDbAccess _sqlite;
     private readonly string _connName = "BooksApiSQLite";
-    public DataTasks(IConfiguration config, ISqliteDbAccess sqlite)
+    private readonly EmailSender _emailSender;
+    public DataTasks(IConfiguration config, ISqliteDbAccess sqlite, EmailSender emailSender)
     {
       _config = config;
       _sqlite = sqlite;
+      _emailSender = emailSender;
     }
     /// <summary>
-    /// complex workaround about new loan evidence
+    /// complex workaround about new book evidence
     /// </summary>
     /// <param name="author"></param>
     /// <param name="book"></param>
     /// <returns>string message for frontend UI</returns>
     public async Task<dynamic> InsBook(Author author, Book book) //parametre json
     {
-      //this complex method is for inserting a new loan. The target database resolves its procedure if the loan is in database. if it is, DB procedure increments only number of prints. If there is no print of the loan, the new record will be added. 
-      //It is not efficient resolve the process of testing existence of loan in api better practise is DB procedure.
-      // test if loan is in DB, return number of prints e.g. search by ean, can be other criteria
+      //this complex method is for inserting a new book. The target database resolves its procedure if the book is in database. if it is, DB procedure increments only number of prints. If there is no print of the book, the new record will be added. 
+      //It is not efficient resolve the process of testing existence of book in api better practise is DB procedure.
+      // test if book is in DB, return number of prints e.g. search by ean, can be other criteria
       Book? bookIs = await GetNumOfPrint(book);
       string retMsg = "";
-      if (bookIs == null) //loan isn't in the DB
+      if (bookIs == null) //book isn't in the DB
       {
         //test existence of author in the db
         long? authIs = await GetAuthorId(author);// in the different (better) scenario can author.Id value come from UI, where could be author chosen from search/autocomplete window
@@ -40,26 +43,26 @@ namespace BooksApi.Data
             long? authNewId = await GetAuthorId(author);
             book.Author_Id = authNewId;
           }
-          retMsg = $"The author of this loan has been recorded for the first time.";
+          retMsg = $"The author of this book has been recorded for the first time.";
         }
         else //author is in the DB
           book.Author_Id = authIs;
         // validating number of added print should be validated on frontend form
         book.Prints_num = book.Prints_num == 0 ? 1 : book.Prints_num;//set number of prints - first print min 1
-        //insert new loan record
+        //insert new book record
         int? insertedB = await InsNewBook(book);
         if (insertedB == 1)
-          retMsg += $" The loan has been recorded for the first time.";
+          retMsg += $" The book has been recorded for the first time.";
         else
-          retMsg += $" Inserting the loan record failed.";
+          retMsg += $" Inserting the book record failed.";
       }
-      else //loan is in the DB, update the loan with increment number of print added
+      else //book is in the DB, update the book with increment number of print added
       {
         // validating number of added print should be validated on frontend form
-        book.Prints_num = bookIs.Prints_num + (book.Prints_num == 0 ? 1 : book.Prints_num);//set number of added prints of existing loan
+        book.Prints_num = bookIs.Prints_num + (book.Prints_num == 0 ? 1 : book.Prints_num);//set number of added prints of existing book
         int? updatedB = await UpdBookNumb((long)bookIs.Id, book.Prints_num);
         if (updatedB == 1)
-          retMsg = "The loan already exist. Number of print updated.";
+          retMsg = "The book already exist. Number of print updated.";
         else
           retMsg = "Number of print update failed.";
       }
@@ -68,7 +71,7 @@ namespace BooksApi.Data
 
     public async Task<Book?> GetNumOfPrint(Book book)
     {
-      //reeturns ID, number of print of exixsting loan, or null if not found
+      //reeturns ID, number of print of exixsting book, or null if not found
       string sql = "SELECT id, prints_num FROM Books  WHERE ean_barcode = :Ean_barcode"; // 9999000083137, Marína
       Book? bookIs;
       try
@@ -85,7 +88,7 @@ namespace BooksApi.Data
 
     public async Task<Book?> GetBookInf(long bookid)
     {
-      //reeturns ID, number of print of exixsting loan, or null if not found
+      //reeturns ID, number of print of exixsting book, or null if not found
       string sql = "SELECT * FROM Books  WHERE id = :Bookid"; //1
       Book? bookIs;
       try
@@ -146,7 +149,7 @@ namespace BooksApi.Data
     public async Task<int?> InsNewBook(Book book)
     {
       string sql = "INSERT INTO Books (title, description, author_id, publisher, edition_year, isbn, ean_barcode, prints_num, note) VALUES(:Title, :Description, :Author_Id, :Publisher, :Edition_year, :Isbn, :Ean_barcode, :Prints_num, :Note)";
-       _sqlite.StartTransaction(_connName);
+      _sqlite.StartTransaction(_connName);
       var res = await _sqlite.SaveDataInTransactionAsync(sql, book);
       _sqlite.CommitTransaction();
       return res;
@@ -208,6 +211,71 @@ namespace BooksApi.Data
       var res = await _sqlite.SaveDataInTransactionAsync(sql, loan);
       _sqlite.CommitTransaction();
       return res;
+    }
+    /// <summary>
+    /// retrieves data for writing the confirmation of returning the book. 
+    /// </summary>
+    /// <param name="bookid">ID of the book which is the confirmation for</param>
+    /// <returns>model object ComplexModel or null If date of return is empty</returns>
+    public async Task<ComplexView?> GetRetConfirm(long bookid)
+    {
+      //returns complex model for the book return confirmation given by book Id. Date of return must not be null
+      string sql = "SELECT c.title C_Title, c.name C_Name,c.surname C_Surname, a.name A_Name, a.surname A_Surname,b.title B_Title,l.loandate L_LoanDate,l.retdate L_RetDate " +
+        "FROM Customers c, Authors a ,Books b ,Loans l " +
+        "WHERE l.retdate NOTNULL AND TRIM(l.retdate) !='' AND l.cust_id = c.id AND l.book_id = b.id AND b.author_id=a.id and b.id= :Bookid";
+      ComplexView? cw;
+      try
+      {
+        cw = await _sqlite.LoadDataOneTypeAsync<ComplexView, dynamic>(sql, new { Bookid = bookid }, _connName);
+
+
+        return cw;
+      }
+      catch (Exception ex)
+      {
+        //some logic for log
+        return null;
+      }
+    }
+
+    /// <summary>
+    /// Retrieves not returned books and necessary data for reminders which due date is tomorrow.
+    /// </summary>
+    /// <returns></returns>
+    public async Task<string?> SendRem()
+    {
+      //DateOnly tomorrow = DateOnly.FromDateTime(DateTime.Now.AddDays(1));
+      //day tomorrow is resolved in build-db functions
+
+      //returns complex model for the book return reminder Date of return must  be null
+      string sql = "SELECT c.title C_Title, c.name C_Name,c.surname C_Surname, c.ct_mail C_Ct_Mail, a.name A_Name, a.surname A_Surname,b.title B_Title,l.loandate L_LoanDate " +
+        "FROM Customers c, Authors a ,Books b ,Loans l " +
+        "WHERE (l.retdate ISNULL OR TRIM(l.retdate) ='') AND l.cust_id = c.id AND l.book_id = b.id AND b.author_id=a.id " +
+        "AND DATE(l.duedate) = DATE(DATETIME('now','+2 hours'), '+1 day')";
+      //Warning. Sqlite works default with UTC Time zone, so for Slovak Summer time must be 2 hors added
+      List<ComplexView?>? cws;
+      try
+      {
+        cws = await _sqlite.LoadListTypeAsync<ComplexView?>(sql, null, _connName);
+
+        string emailRemindBodyTemplate = "Váž. p. {0} {1},\r\n Dovoľujeme si Vás upozorniť, že zajtra uplynie čas, na ktorý ste si požičali knihu {2} {3}: {4} dňa {5}. Prosíme Vás o jej vrátenie.\r\nVaša knižnica";
+
+        EmailModel emod = new();
+        emod.Subject = "Pripomienka";
+
+        foreach (var cw in cws)
+        {
+          emod.To = cw.C_Ct_mail;
+          emod.Body = string.Format(emailRemindBodyTemplate, cw.C_Name, cw.C_Surname, cw.A_Name, cw.A_Surname, cw.B_Title, cw.L_LoanDate);
+          await _emailSender.SendEmail(emod);
+        }
+        return cws.Count.ToString();
+      }
+      catch (Exception ex)
+      {
+        //some logic for log
+        return null;
+      }
     }
   }
 }

@@ -11,6 +11,7 @@ namespace BooksShared.Models
     public string? C_Name { get; set; }
     public string? C_Surname { get; set; }
     public string? C_Title { get; set; }
+    public string? C_Ct_mail {  get; set; }
     //table Authors
     public string A_Name { get; set; } = "";
     public string A_Surname { get; set; } = "";
@@ -19,5 +20,6 @@ namespace BooksShared.Models
     //table Loans
     public DateTime L_LoanDate { get; set; } = DateTime.Now; //Date of book lending
     public DateTime? L_RetDate { get; set; } //Date of book returning
+    public DateTime L_DueDate { get; set; }
   }
 }
