@@ -1,4 +1,5 @@
 ﻿using BooksShared.Models;
+using Microsoft.AspNetCore.Routing.Template;
 using NUnit.Framework;
 using System.Net;
 using System.Net.Http.Json;
@@ -57,11 +58,21 @@ namespace BooksApiTests
     };
 
     private readonly long bookInfoParam = 1;
+    private readonly long bookToDel = 2;
+
+    private readonly Loan loan1 = new Loan() //new Loan, nova zapozicka
+    {
+      Book_Id = 1,
+      Cust_Id = 1,
+      LoanDate = DateTime.Now.AddMonths(-1),
+      DueDate = DateTime.Now.AddMonths(1)
+    };
+
+    private readonly long bookReturnParam = 1;
 
     #endregion
-
+    //*********************************************
     //-Vytvorenie novej knihy
-
     /// <summary>
     /// calling complex function manipulating new book adding
     /// </summary>
@@ -104,6 +115,7 @@ namespace BooksApiTests
         NUnit.Framework.Assert.Fail(mes);
       }
     }
+    //*********************************************
     //-Získanie detailov existujúcej knihy podľa ID
     [Test]
     public async Task GetBookInfo()
@@ -131,7 +143,8 @@ namespace BooksApiTests
       }
     }
 
-    //-Aktualizáciu existujúcej knihy
+    //*********************************************
+    //-Aktualizáciu existujúcej knihy - Update book
     [Test]
     public async Task UpdateBookInDb()
     {
@@ -174,9 +187,115 @@ namespace BooksApiTests
       }
     }
 
+    //*********************************************
+    //-Odstránenie knihy - Delete book
+    [Test]
+    public async Task DeleteBook()
+    {
+      // Id book required as parameter for this example
+      long bookid = bookToDel;
+      int? recordsDeleted;
+      string mes;
+
+      try
+      {
+        recordsDeleted = await _client.GetFromJsonAsync<int>($"/deletebook/{bookid}");
+        if (recordsDeleted != null)
+          NUnit.Framework.Assert.That(recordsDeleted, Is.EqualTo(1));
+        else
+        {
+          mes = "No data returned.";
+          NUnit.Framework.Assert.Fail(mes);
+        }
+      }
+      catch (Exception ex)
+      {
+        mes = $"An error occurred: {ex.Message}";
+        Console.WriteLine(mes);
+        NUnit.Framework.Assert.Fail(mes);
+      }
+    }
+
+    //*********************************************
+    //- Vytvorenie novej zápožičky - New loan
+    [Test]
+    public async Task AddNewLoan()
+    {
+      string apiMap = "/newloan"; //api address of function
+      string result;
+      HttpResponseMessage httpResponseMessage;
+      try
+      {
+        // ID book and customer are required in Model object Loan - prepared by Front end  
+        Loan? content = loan1;
+        if (content != null)
+        {
+          httpResponseMessage = await _client.PostAsJsonAsync(apiMap, content);
+
+          if (httpResponseMessage.IsSuccessStatusCode)
+          {
+            result = await httpResponseMessage.Content.ReadAsStringAsync();
+            NUnit.Framework.Assert.That(result, Is.EqualTo("1"));
+            Console.WriteLine($"Inserted records: {result}");
+          }
+          else
+          {
+            string mes = $"Failed to insert book (Status Code: {httpResponseMessage.StatusCode})";
+            NUnit.Framework.Assert.Fail(mes);
+            Console.WriteLine(mes);
+          }
+        }
+        else
+        {
+          string mes = $"No data for sending to API.";
+          NUnit.Framework.Assert.Fail(mes);
+          Console.WriteLine(mes);
+        }
+      }
+      catch (Exception ex)
+      {
+        string mes = $"An error occurred: {ex.Message}";
+        Console.WriteLine(mes);
+        NUnit.Framework.Assert.Fail(mes);
+      }
+    }
+    //*********************************************
+    //- Potvrdenie o vrátení vypožičanej knihy - Confirmation of the return of the borrowed book
+    /// <summary>
+    /// returns necessary data for creating the confirmation of return via some template
+    /// </summary>
+    /// <returns></returns>
+    [Test]
+    public async Task GetReturnConfirm()
+    {
+      //Id of book required (prepared by UI form)
+      long bookid = bookReturnParam;
+      ComplexView? cw;
+      string mes;
+
+      try
+      {
+        cw = await _client.GetFromJsonAsync<ComplexView>($"/getretconf/{bookid}");
+        if (cw != null)
+          NUnit.Framework.Assert.That(cw, Is.Not.Null);
+        else
+        {
+          mes = "No data returned.";
+          NUnit.Framework.Assert.Fail(mes);
+        }
+      }
+      catch (Exception ex)
+      {
+        mes = $"An error occurred: {ex.Message}";
+        Console.WriteLine(mes);
+        NUnit.Framework.Assert.Fail(mes);
+      }
+    }
+
+    //**************************************************
     #region Private methods
     // simulation of reading and editing book record
-    private Book? PrepareForBookUpdate(Book targetBook, Book sourceBook)
+    private static Book? PrepareForBookUpdate(Book targetBook, Book sourceBook)
     {
       if (sourceBook == null || targetBook==null) return null;
       if (!(sourceBook.Id > 0)) 
@@ -216,7 +335,11 @@ namespace BooksApiTests
 
       return targetBook;
     }
-
+    private static string GetConfirmation(ComplexView cw)
+    {
+      string conf = $"Potvrdzujeme, že p. {cw.C_Title} {cw.C_Name} {cw.C_Surname} vrátil dňa : {cw.L_RetDate} knihu {cw.A_Name} {cw.A_Surname}: {cw.B_Title}, zapožičanú dňa: {cw.L_LoanDate}. Ďakujeme, že ste s nami.";
+      return conf;
+    }
 
     #endregion
   }

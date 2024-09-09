@@ -1,5 +1,6 @@
 ﻿using BooksApi.DbAccess;
 using BooksShared.Models;
+using System.Net;
 namespace BooksApi.Data
 {
   public class DataTasks : IDataTasks
@@ -13,19 +14,19 @@ namespace BooksApi.Data
       _sqlite = sqlite;
     }
     /// <summary>
-    /// complex workaround about new book evidence
+    /// complex workaround about new loan evidence
     /// </summary>
     /// <param name="author"></param>
     /// <param name="book"></param>
     /// <returns>string message for frontend UI</returns>
     public async Task<dynamic> InsBook(Author author, Book book) //parametre json
     {
-      //this complex method is for inserting a new book. The target database resolves its procedure if the book is in database. if it is, DB procedure increments only number of prints. If there is no print of the book, the new record will be added. 
-      //It is not efficient resolve the process of testing existence of book in api better practise is DB procedure.
-      // test if book is in DB, return number of prints e.g. search by ean, can be other criteria
+      //this complex method is for inserting a new loan. The target database resolves its procedure if the loan is in database. if it is, DB procedure increments only number of prints. If there is no print of the loan, the new record will be added. 
+      //It is not efficient resolve the process of testing existence of loan in api better practise is DB procedure.
+      // test if loan is in DB, return number of prints e.g. search by ean, can be other criteria
       Book? bookIs = await GetNumOfPrint(book);
       string retMsg = "";
-      if (bookIs == null) //book isn't in the DB
+      if (bookIs == null) //loan isn't in the DB
       {
         //test existence of author in the db
         long? authIs = await GetAuthorId(author);// in the different (better) scenario can author.Id value come from UI, where could be author chosen from search/autocomplete window
@@ -39,26 +40,26 @@ namespace BooksApi.Data
             long? authNewId = await GetAuthorId(author);
             book.Author_Id = authNewId;
           }
-          retMsg = $"The author of this book has been recorded for the first time.";
+          retMsg = $"The author of this loan has been recorded for the first time.";
         }
         else //author is in the DB
           book.Author_Id = authIs;
         // validating number of added print should be validated on frontend form
         book.Prints_num = book.Prints_num == 0 ? 1 : book.Prints_num;//set number of prints - first print min 1
-        //insert new book record
+        //insert new loan record
         int? insertedB = await InsNewBook(book);
         if (insertedB == 1)
-          retMsg += $" The book has been recorded for the first time.";
+          retMsg += $" The loan has been recorded for the first time.";
         else
-          retMsg += $" Inserting the book record failed.";
+          retMsg += $" Inserting the loan record failed.";
       }
-      else //book is in the DB, update the book with increment number of print added
+      else //loan is in the DB, update the loan with increment number of print added
       {
         // validating number of added print should be validated on frontend form
-        book.Prints_num = bookIs.Prints_num + (book.Prints_num == 0 ? 1 : book.Prints_num);//set number of added prints of existing book
+        book.Prints_num = bookIs.Prints_num + (book.Prints_num == 0 ? 1 : book.Prints_num);//set number of added prints of existing loan
         int? updatedB = await UpdBookNumb((long)bookIs.Id, book.Prints_num);
         if (updatedB == 1)
-          retMsg = "The book already exist. Number of print updated.";
+          retMsg = "The loan already exist. Number of print updated.";
         else
           retMsg = "Number of print update failed.";
       }
@@ -67,7 +68,7 @@ namespace BooksApi.Data
 
     public async Task<Book?> GetNumOfPrint(Book book)
     {
-      //reeturns ID, number of print of exixsting book, or null if not found
+      //reeturns ID, number of print of exixsting loan, or null if not found
       string sql = "SELECT id, prints_num FROM Books  WHERE ean_barcode = :Ean_barcode"; // 9999000083137, Marína
       Book? bookIs;
       try
@@ -84,7 +85,7 @@ namespace BooksApi.Data
 
     public async Task<Book?> GetBookInf(long bookid)
     {
-      //reeturns ID, number of print of exixsting book, or null if not found
+      //reeturns ID, number of print of exixsting loan, or null if not found
       string sql = "SELECT * FROM Books  WHERE id = :Bookid"; //1
       Book? bookIs;
       try
@@ -145,8 +146,7 @@ namespace BooksApi.Data
     public async Task<int?> InsNewBook(Book book)
     {
       string sql = "INSERT INTO Books (title, description, author_id, publisher, edition_year, isbn, ean_barcode, prints_num, note) VALUES(:Title, :Description, :Author_Id, :Publisher, :Edition_year, :Isbn, :Ean_barcode, :Prints_num, :Note)";
-      //string sql = "INSERT INTO Books (title, description, author_id, publisher, edition_year, isbn, ean_barcode, prints_num, note) VALUES(:Title, :Description, 3, :Publisher, :Edition_year, :Isbn, :Ean_barcode, :Prints_num, :Note)";
-      _sqlite.StartTransaction(_connName);
+       _sqlite.StartTransaction(_connName);
       var res = await _sqlite.SaveDataInTransactionAsync(sql, book);
       _sqlite.CommitTransaction();
       return res;
@@ -172,9 +172,42 @@ namespace BooksApi.Data
       }
       catch (Exception ex)
       {
-        //some log logic
+        //some log logic ...
         return null;
       }
+    }
+    /// <summary>
+    /// delete record from table given by Id
+    /// </summary>
+    /// <param name="recId">the name of Id column must be "id"</param>
+    /// <param name="tableName">name of the target table</param>
+    /// <returns></returns>
+    public async Task<int?> DeleteRec(long recId, string tableName)
+    {
+      try
+      {
+        string sql = $"delete from {tableName} where id = :RecId";
+        var res = await _sqlite.ExecAsync<dynamic>(sql, new { RecId = recId }, _connName);
+        return res;
+      }
+      catch (Exception ex)
+      {
+        //some log logic ...
+        return null;
+      }
+    }
+    /// <summary>
+    /// Insert new Loan record
+    /// </summary>
+    /// <param name="loan"></param>
+    /// <returns>int number of records</returns>
+    public async Task<int?> NewLoanIns(Loan loan)
+    {
+      string sql = "INSERT INTO Loans (book_id, cust_id, loandate, duedate) VALUES(:Book_Id, :Cust_Id, :LoanDate, :DueDate)";
+      _sqlite.StartTransaction(_connName);
+      var res = await _sqlite.SaveDataInTransactionAsync(sql, loan);
+      _sqlite.CommitTransaction();
+      return res;
     }
   }
 }

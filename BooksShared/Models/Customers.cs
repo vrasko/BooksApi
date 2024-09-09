@@ -6,6 +6,7 @@ namespace BooksShared.Models
     public long Id { get; set; }
     public string? Name { get; set; }
     public string? Surname { get; set; }
+    public string? Title { get; set; }
     public string? Ad_street { get; set; }
     public string? Ad_number { get; set; }
     public string? Ad_city { get; set; }
